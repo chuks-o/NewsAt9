@@ -28,7 +28,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen }) => {
   };
 
   return (
-    <header className="sticky top-0 z-10 bg-white shadow-md">
+    <header className="sticky top-0 z-10 bg-white shadow-xs">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -46,6 +46,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen }) => {
 
           <div className="hidden md:flex flex-1 max-w-xl mx-4">
             <AppSearchField
+              autoComplete="off"
               placeholder="Search for news..."
               value={searchValue}
               onChange={handleSearchChange}

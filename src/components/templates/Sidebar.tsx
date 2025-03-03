@@ -18,8 +18,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {isOpen && <AppOverlay onClose={onClose} />}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-30 h-screen w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-auto",
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+          "fixed top-0 left-0 z-30 h-screen w-64 bg-white shadow-xs transform transition-transform duration-300 ease-in-out",
+          "lg:left-0 lg:top-16.5 lg:bottom-0 lg:translate-x-0",
+          isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="p-4 h-full overflow-y-auto">
