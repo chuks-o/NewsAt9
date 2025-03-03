@@ -1,15 +1,14 @@
 import React from "react";
 import { AppInput } from "~/components/atoms/AppInput";
-import { SearchFilters } from "~/types";
 
 interface AppDateRangeFieldProps {
   filters: { dateFrom: string; dateTo: string };
-  updateFilter: (filters: Partial<SearchFilters>) => void;
+  updateFilter: (e: React.ChangeEvent<HTMLInputElement>) => void
 }
 
 export const AppDateRangeField: React.FC<AppDateRangeFieldProps> = ({ filters, updateFilter }) => (
   <div className="flex flex-col sm:flex-row gap-2">
-    <AppInput label="From" id="dateFrom" type="date" value={filters.dateFrom} onChange={(e) => updateFilter({ dateFrom: e.target.value })} />
-    <AppInput label="To" id="dateTo" type="date" value={filters.dateTo} onChange={(e) => updateFilter({ dateTo: e.target.value })} />
+    <AppInput label="From" name="dateFrom" id="dateFrom" type="date" value={filters.dateFrom} onChange={updateFilter} />
+    <AppInput label="To" name="dateTo" id="dateTo" type="date" value={filters.dateTo} onChange={updateFilter} />
   </div>
 )

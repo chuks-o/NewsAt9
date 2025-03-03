@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { useNewsStore } from '../../store/useNewsStore';
 import { AppSearchField } from '../molecules';
+import { debounce } from '~/utils/debounce';
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -9,13 +10,27 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen }) => {
-  const { searchFilters, updateSearchFilters } = useNewsStore();
+  const { updateSearchFilters } = useNewsStore();
+  const [searchValue, setSearchValue] = useState<string>('');
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debouncedSearch = useCallback(
+    debounce((value: string) => {
+      updateSearchFilters({ keyword: value });
+    }, 1000),
+    [updateSearchFilters]
+  );
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchValue(value);
+    debouncedSearch(value);
+  };
 
   return (
     <header className="sticky top-0 z-10 bg-white shadow-md">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          {/* Logo and Menu Button */}
           <div className="flex items-center space-x-4">
             <button
               onClick={toggleSidebar}
@@ -29,16 +44,14 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen }) => {
             </div>
           </div>
 
-          {/* Search Bar */}
           <div className="hidden md:flex flex-1 max-w-xl mx-4">
             <AppSearchField
               placeholder="Search for news..."
-              value={searchFilters.keyword}
-              onChange={(e) => updateSearchFilters({ keyword: e.target.value })}
+              value={searchValue}
+              onChange={handleSearchChange}
             />
           </div>
 
-          {/* User Profile */}
           <div className="flex items-center  space-x-2">
             <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
               C
@@ -47,12 +60,12 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen }) => {
           </div>
         </div>
 
-        {/* Mobile Search Bar */}
         <div className="mt-3 md:hidden">
           <AppSearchField
             placeholder="Search for news..."
-            value={searchFilters.keyword}
-            onChange={(e) => updateSearchFilters({ keyword: e.target.value })}
+            autoComplete="off"
+            value={searchValue}
+            onChange={handleSearchChange}
           />
         </div>
       </div>

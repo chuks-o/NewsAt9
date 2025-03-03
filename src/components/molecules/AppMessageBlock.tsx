@@ -1,6 +1,6 @@
 import React from 'react'
 import { AppButton } from '../atoms'
-import { cn } from '~/services/utilities';
+import { cn } from '~/utils/helpers';
 
 interface AppMessageBlockProps {
   message: string;

@@ -1,8 +1,61 @@
-import { Article } from '../types';
-import { normalizeArticle } from './utilities';
+import { Article, GuardianResponse, GuardianSectionResponse, NewsApiResponse, NYTResponse, NYTSectionResponse } from '../types';
+import { normalizeArticle } from '../utils/helpers';
 import { createFetchClient } from './fetchClient';
 
-// Function to fetch news from NewsAPI
+const nytApiClient = createFetchClient({
+  baseURL: 'https://api.nytimes.com/svc',
+  params: {
+    'api-key': import.meta.env.VITE_NYT_API_KEY,
+  },
+});
+
+const guardianApiClient = createFetchClient({
+  baseURL: 'https://content.guardianapis.com',
+  params: {
+    'api-key': import.meta.env.VITE_GUARDIAN_API_KEY,
+  },
+});
+
+export const fetchAvailableCategories = async (): Promise<string[]> => {
+  try {
+    const newsApiCategories = [
+      'business', 'entertainment', 'general', 'health', 'science', 'sports', 'technology'
+    ];
+
+    let guardianSections: string[] = [];
+    try {
+      const response = await guardianApiClient.get<GuardianSectionResponse>('/sections');
+      guardianSections = response.data.response.results.map((section) =>
+        section.id.toLowerCase()
+      );
+    } catch (error) {
+      console.error('Error fetching Guardian sections:', error);
+    }
+
+    let nytSections: string[] = [];
+    try {
+      const response = await nytApiClient.get<NYTSectionResponse>('/news/v3/content/section-list.json');
+      nytSections = response.data.results.map((section) =>
+        section.section.toLowerCase()
+      );
+    } catch (error) {
+      console.error('Error fetching NYT sections:', error);
+      return []
+    }
+
+    const allCategories = [...new Set([
+      ...newsApiCategories,
+      ...guardianSections,
+      ...nytSections
+    ])].sort();
+
+    return allCategories;
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    return [];
+  }
+};
+
 export const fetchNewsApiArticles = async (
   keyword = '',
   category = '',
@@ -28,28 +81,20 @@ export const fetchNewsApiArticles = async (
     if (to) params.to = to;
     if (sources) params.sources = sources;
 
-    const response = await newsApiClient.get('/top-headlines', { params });
-    return response.data.articles.map((article: any ) => normalizeArticle(article, 'newsapi'));
+    const response = await newsApiClient.get<NewsApiResponse>('/top-headlines', { params });
+    return response.data.articles.map((article) => normalizeArticle(article, 'newsapi'));
   } catch (error) {
     console.error('Error fetching from NewsAPI:', error);
     return [];
   }
 };
 
-// Function to fetch news from The Guardian
 export const fetchGuardianArticles = async (
   keyword = '',
   section = '',
   from = '',
   to = ''
 ): Promise<Article[]> => {
-  const guardianApiClient = createFetchClient({
-    baseURL: 'https://content.guardianapis.com',
-    params: {
-      'api-key': import.meta.env.VITE_GUARDIAN_API_KEY,
-    },
-  });
-
   try {
     const params: Record<string, string> = {
       'show-fields': 'headline,trailText,byline,thumbnail,bodyText',
@@ -60,8 +105,8 @@ export const fetchGuardianArticles = async (
     if (from) params['from-date'] = from;
     if (to) params['to-date'] = to;
 
-    const response = await guardianApiClient.get('/search', { params });
-    return response.data.response.results.map((article: any) => normalizeArticle(article, 'guardian'));
+    const response = await guardianApiClient.get<GuardianResponse>('/search', { params });
+    return response.data.response.results.map((article) => normalizeArticle(article, 'guardian'));
   } catch (error) {
     console.error('Error fetching from The Guardian:', error);
     return [];
@@ -74,13 +119,6 @@ export const fetchNYTArticles = async (
   from = '',
   to = ''
 ): Promise<Article[]> => {
-  const nytApiClient = createFetchClient({
-    baseURL: 'https://api.nytimes.com/svc',
-    params: {
-      'api-key': import.meta.env.VITE_NYT_API_KEY,
-    },
-  });
-
   try {
     const params: Record<string, string> = {};
 
@@ -89,17 +127,14 @@ export const fetchNYTArticles = async (
     if (from) params.begin_date = from.replace(/-/g, '');
     if (to) params.end_date = to.replace(/-/g, '');
 
-    const response = await nytApiClient.get('/search/v2/articlesearch.json', { params });
-    console.log({response});
-    
-    return response.data.response.docs.map((article: any) => normalizeArticle(article, 'nyt'));
+    const response = await nytApiClient.get<NYTResponse>('/search/v2/articlesearch.json', { params });
+    return response.data.response.docs.map((article) => normalizeArticle(article, 'nyt'));
   } catch (error) {
     console.error('Error fetching from The New York Times:', error);
     return [];
   }
 };
 
-// Function to fetch news from all sources
 export const fetchAllNews = async (
   keyword = '',
   category = '',

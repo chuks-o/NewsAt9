@@ -2,8 +2,8 @@ import React from 'react';
 import { useNewsStore } from '../../store/useNewsStore';
 import { X } from 'lucide-react';
 import { AppOverlay } from '../atoms';
-import { cn } from '~/services/utilities';
 import { AppCategoriesFilter, AppNewsSourcesFilter } from '../organisms';
+import { cn } from '~/utils/helpers';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -23,7 +23,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         )}
       >
         <div className="p-4 h-full overflow-y-auto">
-          {/* Close button (mobile only) */}
           <div className="flex justify-between items-center mb-6 lg:hidden">
             <h2 className="text-xl font-bold">Filters</h2>
             <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100">

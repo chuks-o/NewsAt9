@@ -1,17 +1,18 @@
 import React from "react";
 import { AppCategoryFilter, AppDateRangeField, AppNewsSourceFilter } from "~/components/molecules"
-import { SearchFilters, UserPreferences } from "~/types";
+import { FilterOption, SearchFilters } from "~/types";
 
 interface AppFilterControlsProps {
   filters: SearchFilters;
-  userPreferences: UserPreferences;
-  updateFilter: (filters: Partial<SearchFilters>) => void
+  updateFilter: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
+  categories: FilterOption[]
+  sources: FilterOption[]
 }
 
-export const AppFilterControls: React.FC<AppFilterControlsProps> = ({ filters, updateFilter, userPreferences }) => (
+export const AppFilterControls: React.FC<AppFilterControlsProps> = ({ categories, filters, updateFilter, sources }) => (
   <div className="flex flex-wrap gap-4">
     <AppDateRangeField filters={filters} updateFilter={updateFilter} />
-    <AppCategoryFilter value={filters.category} categories={userPreferences.categories} updateFilter={(value) => updateFilter({ category: value })} />
-    <AppNewsSourceFilter value={filters.source} sources={userPreferences.sources} updateFilter={(value) => updateFilter({ source: value })} />
+    <AppCategoryFilter value={filters.category} categories={categories} updateFilter={updateFilter} />
+    <AppNewsSourceFilter value={filters.source} sources={sources} updateFilter={updateFilter} />
   </div>
 );

@@ -4,3 +4,4 @@ export * from "./AppInputLabel"
 export * from "./AppButton";
 export * from "./AppLoader";
 export * from "./AppOverlay"
+export * from "./AppLink"

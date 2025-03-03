@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Article, SearchFilters, UserPreferences } from '../types';
-import { fetchAllNews } from '../services/api';
-import { initialCategories, initialSearchFilters, initialSources } from '../services/constants';
+import { fetchAllNews, fetchAvailableCategories } from '../services/api';
+import { initialSearchFilters, initialSources } from '../services/constants';
 
 interface NewsState {
   articles: Article[];
@@ -12,16 +12,16 @@ interface NewsState {
   searchFilters: SearchFilters;
   userPreferences: UserPreferences;
 
-  // Actions
   fetchArticles: () => Promise<void>;
   updateSearchFilters: (filters: Partial<SearchFilters>) => void;
   toggleSource: (sourceId: string) => void;
   toggleCategory: (categoryId: string) => void;
-  toggleAuthor: (authorId: string) => void;
   resetFilters: () => void;
+  fetchCategories: () => Promise<void>;
+  updateCategoriesFromArticles: (articles: Article[]) => void;
+  filterArticlesLocally: (filters: SearchFilters, articles?: Article[]) => Article[];
 }
 
-// Create the store
 export const useNewsStore = create<NewsState>()(
   persist(
     (set, get) => ({
@@ -32,8 +32,62 @@ export const useNewsStore = create<NewsState>()(
       searchFilters: initialSearchFilters,
       userPreferences: {
         sources: initialSources,
-        categories: initialCategories,
+        categories: [],
         authors: [],
+      },
+
+      updateCategoriesFromArticles: (articles: Article[]) => {
+        const { userPreferences } = get();
+
+        const articleCategories = [...new Set(articles.map(article => article.category))]
+          .filter(category => category)
+          .sort();
+
+        const existingCategoriesMap = new Map(
+          userPreferences.categories.map(category => [category.id, category])
+        );
+
+        const updatedCategories = articleCategories.map(categoryId => {
+          const existingCategory = existingCategoriesMap.get(categoryId);
+
+          if (existingCategory) {
+            return existingCategory;
+          } else {
+            return {
+              id: categoryId,
+              name: categoryId.charAt(0).toUpperCase() + categoryId.slice(1),
+              enabled: true
+            };
+          }
+        });
+
+        set(state => ({
+          userPreferences: {
+            ...state.userPreferences,
+            categories: updatedCategories
+          }
+        }));
+      },
+
+      fetchCategories: async () => {
+        try {
+          const categories = await fetchAvailableCategories();
+
+          const categoryObjects = categories.map(category => ({
+            id: category,
+            name: category.charAt(0).toUpperCase() + category.slice(1),
+            enabled: true
+          }));
+
+          set(state => ({
+            userPreferences: {
+              ...state.userPreferences,
+              categories: categoryObjects
+            }
+          }));
+        } catch (error) {
+          console.error('Failed to fetch categories:', error);
+        }
       },
 
       fetchArticles: async () => {
@@ -41,15 +95,13 @@ export const useNewsStore = create<NewsState>()(
         try {
           const { searchFilters, userPreferences } = get();
 
-          // Get enabled sources
           const enabledSources = userPreferences.sources
             .filter(source => source.enabled)
             .map(source => source.id);
 
-          // Get enabled categories
-          // const enabledCategories = userPreferences.categories
-          //   .filter(category => category.enabled)
-          //   .map(category => category.id);
+          const enabledCategories = userPreferences.categories
+            .filter(category => category.enabled)
+            .map(category => category.id);
 
           const articles = await fetchAllNews(
             searchFilters.keyword,
@@ -58,63 +110,22 @@ export const useNewsStore = create<NewsState>()(
             searchFilters.dateTo,
             enabledSources
           );
-          console.log({articles});
 
-          // Apply filters
-          let filteredArticles = articles;
+          get().updateCategoriesFromArticles(articles);
 
-          // Filter by keyword
-          if (searchFilters.keyword) {
-            const keyword = searchFilters.keyword.toLowerCase();
+          let filteredArticles = get().filterArticlesLocally(searchFilters, articles)
+
+          if (enabledSources.length > 0) {
             filteredArticles = filteredArticles.filter(
-              article =>
-                article.title.toLowerCase().includes(keyword) ||
-                article.description.toLowerCase().includes(keyword)
+              article => enabledSources.includes(article.source.id)
             );
           }
 
-          // Filter by date range
-          if (searchFilters.dateFrom) {
-            const fromDate = new Date(searchFilters.dateFrom);
+          if (enabledCategories.length > 0 && enabledCategories.length < userPreferences.categories.length) {
             filteredArticles = filteredArticles.filter(
-              article => new Date(article.publishedAt) >= fromDate
+              article => enabledCategories.includes(article.category)
             );
           }
-
-          if (searchFilters.dateTo) {
-            const toDate = new Date(searchFilters.dateTo);
-            filteredArticles = filteredArticles.filter(
-              article => new Date(article.publishedAt) <= toDate
-            );
-          }
-
-          // Filter by category
-          if (searchFilters.category && searchFilters.category !== 'all') {
-            filteredArticles = filteredArticles.filter(
-              article => article.category === searchFilters.category
-            );
-          }
-
-          // Filter by source
-          // if (searchFilters.source && searchFilters.source !== 'all') {
-          //   filteredArticles = filteredArticles.filter(
-          //     article => article.source.id === searchFilters.source
-          //   );
-          // }
-
-          // Filter by enabled sources
-          // if (enabledSources.length > 0) {
-          //   filteredArticles = filteredArticles.filter(
-          //     article => enabledSources.includes(article.source.id)
-          //   );
-          // }
-
-          // Filter by enabled categories
-          // if (enabledCategories.length > 0) {
-          //   filteredArticles = filteredArticles.filter(
-          //     article => enabledCategories.includes(article.category)
-          //   );
-          // }
 
           set({
             articles,
@@ -129,7 +140,24 @@ export const useNewsStore = create<NewsState>()(
         }
       },
 
-      // Update search filters
+      filterArticlesLocally: (filters: SearchFilters, allArticles?: Article[]) => {
+        const articles = allArticles || get().articles;
+        const { keyword, dateFrom, dateTo, category, source } = filters;
+
+        const filteredArticles = articles.filter(article => {
+          const matchesKeyword = filters.keyword ? article.title.toLowerCase().includes(keyword.toLowerCase()) ||
+                  article.description.toLowerCase().includes(keyword.toLowerCase()) : true;
+          const matchesDateFrom = filters.dateFrom ? new Date(article.publishedAt) >= new Date(dateFrom) : true;
+          const matchesDateTo = filters.dateTo ? new Date(article.publishedAt) <= new Date(dateTo) : true;
+          const matchesCategory = filters.category ? article.category === category : true;
+          const matchesSource = filters.source ? article.source.id === source : true;
+          return matchesKeyword && matchesDateFrom && matchesDateTo && matchesCategory && matchesSource;
+        });
+
+        set({ searchFilters: filters, filteredArticles });
+        return filteredArticles
+      },
+
       updateSearchFilters: (filters) => {
         set(state => ({
           searchFilters: { ...state.searchFilters, ...filters }
@@ -165,30 +193,9 @@ export const useNewsStore = create<NewsState>()(
         get().fetchArticles();
       },
 
-      // Toggle author enabled/disabled
-      toggleAuthor: (authorId) => {
-        set(state => ({
-          userPreferences: {
-            ...state.userPreferences,
-            authors: state.userPreferences.authors.map(author =>
-              author.id === authorId
-                ? { ...author, enabled: !author.enabled }
-                : author
-            )
-          }
-        }));
-        get().fetchArticles();
-      },
-
-      // Reset all filters
       resetFilters: () => {
         set({
           searchFilters: initialSearchFilters,
-          userPreferences: {
-            sources: initialSources,
-            categories: initialCategories,
-            authors: [],
-          }
         });
         get().fetchArticles();
       },
