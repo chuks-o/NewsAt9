@@ -33,7 +33,7 @@ jobs:
 
       - name: Deploy to AWS S3
         run: |
-          aws s3 sync build/ s3://${{ secrets.AWS_S3_BUCKET }} --delete --acl public-read
+          aws s3 sync dist/ s3://${{ secrets.AWS_S3_BUCKET }} --delete --acl public-read
           # Uncomment the following lines if you want to invalidate CloudFront cache
           # aws cloudfront create-invalidation --distribution-id YOUR_DISTRIBUTION_ID --paths "/*"
           # Replace YOUR_DISTRIBUTION_ID with your CloudFront distribution ID
