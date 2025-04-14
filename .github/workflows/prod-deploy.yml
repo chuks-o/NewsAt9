@@ -1,0 +1,44 @@
+name: Deploy to AWS S3
+
+on:
+  push:
+    branches:
+      - main  # or 'master' depending on your default branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'  # or your app's Node version
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build React app
+        run: npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1  # change to your bucket's region
+
+      - name: Deploy to AWS S3
+        run: |
+          aws s3 sync build/ s3://${{ secrets.AWS_S3_BUCKET }} --delete --acl public-read
+          # Uncomment the following lines if you want to invalidate CloudFront cache
+          # aws cloudfront create-invalidation --distribution-id YOUR_DISTRIBUTION_ID --paths "/*"
+          # Replace YOUR_DISTRIBUTION_ID with your CloudFront distribution ID
+          # Note: You may need to set up AWS CLI with the appropriate permissions for this step
+
+      - name: Notify deployment success
+        run: echo "Deployment to S3 completed successfully!"
+        # You can also use a notification service like Slack, Discord, etc. here
