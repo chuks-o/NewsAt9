@@ -86,7 +86,6 @@ export const useNewsStore = create<NewsState>()(
             }
           }));
         } catch (error) {
-          console.error('Failed to fetch categories:', error);
         }
       },
 

@@ -13,7 +13,6 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, isSidebarOpen }) => {
   const { updateSearchFilters } = useNewsStore();
   const [searchValue, setSearchValue] = useState<string>('');
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedSearch = useCallback(
     debounce((value: string) => {
       updateSearchFilters({ keyword: value });
