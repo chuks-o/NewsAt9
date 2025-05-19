@@ -29,7 +29,6 @@ export const fetchAvailableCategories = async (): Promise<string[]> => {
         section.id.toLowerCase()
       );
     } catch (error) {
-      console.error('Error fetching Guardian sections:', error);
     }
 
     let nytSections: string[] = [];
@@ -39,7 +38,6 @@ export const fetchAvailableCategories = async (): Promise<string[]> => {
         section.section.toLowerCase()
       );
     } catch (error) {
-      console.error('Error fetching NYT sections:', error);
       return []
     }
 
@@ -51,7 +49,6 @@ export const fetchAvailableCategories = async (): Promise<string[]> => {
 
     return allCategories;
   } catch (error) {
-    console.error('Error fetching categories:', error);
     return [];
   }
 };
@@ -84,7 +81,6 @@ export const fetchNewsApiArticles = async (
     const response = await newsApiClient.get<NewsApiResponse>('/top-headlines', { params });
     return response.data.articles.map((article) => normalizeArticle(article, 'newsapi'));
   } catch (error) {
-    console.error('Error fetching from NewsAPI:', error);
     return [];
   }
 };
@@ -108,7 +104,6 @@ export const fetchGuardianArticles = async (
     const response = await guardianApiClient.get<GuardianResponse>('/search', { params });
     return response.data.response.results.map((article) => normalizeArticle(article, 'guardian'));
   } catch (error) {
-    console.error('Error fetching from The Guardian:', error);
     return [];
   }
 };
@@ -130,7 +125,6 @@ export const fetchNYTArticles = async (
     const response = await nytApiClient.get<NYTResponse>('/search/v2/articlesearch.json', { params });
     return response.data.response.docs.map((article) => normalizeArticle(article, 'nyt'));
   } catch (error) {
-    console.error('Error fetching from The New York Times:', error);
     return [];
   }
 };
@@ -163,7 +157,6 @@ export const fetchAllNews = async (
 
     return [...newsApiArticles, ...guardianArticles, ...NYTArticles];
   } catch (error) {
-    console.error('Error fetching news:', error);
     return [];
   }
 };
